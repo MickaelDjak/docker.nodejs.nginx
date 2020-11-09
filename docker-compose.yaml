@@ -1,0 +1,72 @@
+version: "3"
+
+services:
+  frontend:
+    container_name: frontend_app
+    build: ./frontend
+    command: npm run start
+#    ports:
+#    - "3000:3000"
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    volumes:
+    - ./frontend/:/usr/src/app/
+
+  api:
+    container_name: api_app
+    build: ./api
+    command: npm run start
+    restart: unless-stopped
+    depends_on:
+      - api_db
+    ports:
+    - "3001:3001"
+    environment:
+      PORT: 3001
+      DB: "mongodb://api_db:27017/test"
+      AUTH_API_URL: "http://auth:3002/api"
+
+  api_db:
+    container_name: api_db
+    image: mongo:latest
+    logging:
+      driver: "none"
+    volumes:
+      - my_new_volume_fot_api:/data/db
+
+  auth:
+    container_name: auth_app
+    build: ./auth
+    command: npm run start
+    restart: unless-stopped
+    depends_on:
+      - auth_db
+    ports:
+    - "3002:3002"
+    environment:
+      PORT: 3002
+      DB: "mongodb://auth_db:27017/test"
+      API_URL: "http://api:3001/api"
+
+  auth_db:
+    container_name: auth_db
+    image: mongo:latest
+    logging:
+      driver: "none"
+    volumes:
+      - my_new_volume_fot_auth:/data/db
+
+  nginx:
+    container_name: nginx_proxy
+    image: nginx:stable-alpine
+    ports:
+    - "80:80"
+    volumes:
+    - ./nginx/nginx.conf.prod:/etc/nginx/conf.d/nginx.conf
+    depends_on:
+      - frontend
+
+volumes:
+  my_new_volume_fot_api:
+  my_new_volume_fot_auth:
